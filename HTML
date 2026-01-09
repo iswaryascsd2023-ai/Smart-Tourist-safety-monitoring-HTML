@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Tourist Safety Monitoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --header-bg: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --accent: #4834d4;
+            --danger: #eb4d4b;
+            --success: #6ab04c;
+            --bg-light: #f0f2f5;
+            --text-main: #2d3436;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* --- LOGIN --- */
+        #loginOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 32, 39, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 350px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .login-box h2 { color: var(--accent); margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .login-box button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        /* --- LAYOUT --- */
+        header { background: var(--header-bg); color: white; padding: 40px 20px; text-align: center; }
+        
+        nav {
+            background: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav a { color: #555; text-decoration: none; font-weight: 600; cursor: pointer; padding: 8px 15px; border-radius: 5px; }
+        nav a:hover { background: #f0f0f0; color: var(--accent); }
+
+        .user-profile-nav { display: flex; align-items: center; gap: 10px; border-left: 1px solid #eee; padding-left: 15px; }
+        .profile-icon { width: 30px; height: 30px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+
+        .page { display: none; padding: 40px 20px; max-width: 900px; margin: auto; }
+        .active-page { display: block; }
+        .content-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        /* --- PROFILE PAGE UI (Matched to Image) --- */
+        .profile-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .profile-avatar { width: 60px; height: 60px; background: #e0e0e0; border-radius: 50%; }
+        .profile-label { display: block; font-weight: 600; font-size: 0.85rem; margin-top: 15px; margin-bottom: 5px; color: #444; }
+        .profile-input { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; font-size: 0.9rem; }
+        
+        .blood-grid { display: flex; gap: 10px; margin: 10px 0; justify-content: center; }
+        .blood-btn { padding: 10px 20px; border: 1px solid #eee; background: #f8f9fa; border-radius: 8px; cursor: pointer; }
+        .blood-btn.selected { background: #eee; border-color: #ddd; font-weight: bold; }
+
+        .medical-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+        .medical-info { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .medical-status { font-weight: bold; font-size: 0.9rem; color: #333; }
+
+        .profile-actions { display: flex; gap: 10px; margin-top: 30px; }
+        .cancel-btn { flex: 1; padding: 15px; background: white; border: 1px solid #ccc; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .save-btn { flex: 1; padding: 15px; background: black; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        /* --- INCIDENT REPORT UI --- */
+        .incident-type-grid { display: flex; gap: 10px; margin: 15px 0; }
+        .type-btn { flex: 1; padding: 12px; border: 1px solid #eee; background: #f8f9fa; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        .type-btn.selected { background: var(--accent); color: white; border-color: var(--accent); }
+        .upload-btn, .submit-btn { width: 100%; padding: 15px; background: black; color: white; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        /* --- CHAT UI --- */
+        .chat-window { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        #chatBox { height: 400px; padding: 25px; overflow-y: auto; background: #fdfdfd; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px 18px; border-radius: 15px; max-width: 80%; font-size: 0.95rem; line-height: 1.4; }
+        .bot { background: #f0f2f5; align-self: flex-start; border-bottom-left-radius: 2px; color: #333; }
+        .user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        /* --- SOS & GPS --- */
+        .sos-btn { background: var(--danger); color: white; border: none; padding: 40px 80px; border-radius: 20px; font-size: 2.5rem; font-weight: 900; cursor: pointer; display: block; margin: 20px auto; }
+        .radar { width: 80px; height: 80px; border: 4px solid var(--success); border-radius: 50%; margin: 20px auto; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(106, 176, 76, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(106, 176, 76, 0); } }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2>Safety Login</h2>
+            <input type="text" id="username" placeholder="prenishaa.a.csd.2023@snsce.ac.in">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Enter Portal</button>
+            <p id="errorMsg" style="color:var(--danger); font-size: 0.8rem; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <header>
+        <h1>Smart Tourist Safety</h1>
+        <p></p>
+    </header>
+
+    <nav id="mainNav" class="hidden">
+        <a onclick="showPage('home')">Home</a>
+        <a onclick="showPage('report')">Report</a>
+        <a onclick="showPage('gps')">GPS</a>
+        <a onclick="showPage('sos')">SOS</a>
+        <a onclick="showPage('ai')">Safety AI</a>
+        <a onclick="showPage('profile')">Profile</a>
+        <div class="user-profile-nav">
+            <div class="profile-icon" id="userInitial">U</div>
+            <span id="displayUser">User</span>
+        </div>
+        <a onclick="location.reload()" style="color:var(--danger)">Logout</a>
+    </nav>
+
+    <main id="content" class="hidden">
+        
+        <section id="homePage" class="page active-page">
+            <div class="content-card">
+                <h2>Welcome, <span id="welcomeUser">Tourist</span></h2>
+                <p>System is monitoring your coordinates. Use the <b>Safety AI</b> for instant, short instructions during emergencies.</p>
+            </div>
+        </section>
+
+        <section id="profilePage" class="page">
+            <div class="content-card">
+                <div class="profile-header">
+                    <div class="profile-avatar"></div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 1.1rem;" id="profName">John Doe</div>
+                        <div style="color: #666; font-size: 0.85rem;">Age: 30, Male</div>
+                    </div>
+                </div>
+
+                <label class="profile-label">Phone Number</label>
+                <input type="text" class="profile-input" placeholder="Enter your phone number">
+
+                <label class="profile-label">Additional Phone Number</label>
+                <input type="text" class="profile-input" placeholder="Enter additional phone number">
+
+                <label class="profile-label">Email ID</label>
+                <input type="text" class="profile-input" placeholder="Enter your email id">
+
+                <label class="profile-label">Additional Email ID</label>
+                <input type="text" class="profile-input" placeholder="Enter additional email id">
+
+                <label class="profile-label">Blood Group</label>
+                <div class="blood-grid">
+                    <button class="blood-btn" onclick="selectBlood(this)">A-</button>
+                    <button class="blood-btn selected" onclick="selectBlood(this)">B+</button>
+                    <button class="blood-btn" onclick="selectBlood(this)">O+</button>
+                </div>
+                <center><small style="color:#888;">Select your blood group</small></center>
+
+                <label class="profile-label" style="margin-top:25px; font-size:1rem;">Medical Notes</label>
+                <p style="font-size: 0.75rem; color: #888; margin-top:-5px;">Share any medical notes that are relevant</p>
+
+                <div class="medical-item">
+                    <div class="medical-info">🤧 Allergy</div>
+                    <div class="medical-status">None</div>
+                </div>
+                <div class="medical-item">
+                    <div class="medical-info">💬 Asthma / Diabetes</div>
+                    <div class="medical-status">No</div>
+                </div>
+                <div class="medical-item">
+                    <div class="medical-info">🩺 Any Special Condition</div>
+                    <div class="medical-status">None</div>
+                </div>
+                <div class="medical-item">
+                    <div class="medical-info">📋 Others</div>
+                    <div class="medical-status">N/A</div>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="cancel-btn" onclick="showPage('home')">Cancel</button>
+                    <button class="save-btn" onclick="alert('Profile Saved!')">Save</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="reportPage" class="page">
+            <div class="content-card">
+                <h3 style="margin-top:0;">Incident Reporting</h3>
+                <label style="font-weight:600; font-size:0.9rem;">Incident Type</label>
+                <div class="incident-type-grid">
+                    <button class="type-btn" onclick="selectType(this)">Theft</button>
+                    <button class="type-btn" onclick="selectType(this)">Accident</button>
+                    <button class="type-btn" onclick="selectType(this)">Emergency</button>
+                </div>
+                <label style="font-weight:600; font-size:0.9rem;">Description</label>
+                <input type="text" id="incidentDesc" placeholder="Briefly describe the incident" class="profile-input" style="margin-top:8px;">
+                <input type="file" id="photoUpload" accept="image/*,video/*" style="display:none;">
+                <button class="upload-btn" onclick="document.getElementById('photoUpload').click()">Upload Photo/Video</button>
+                <button class="submit-btn" onclick="submitIncident()">Submit Incident</button>
+            </div>
+        </section>
+
+        <section id="gpsPage" class="page">
+            <div class="content-card" style="text-align:center;">
+                <div class="radar"></div>
+                <h3>Satellite Location</h3>
+                <div id="coords" style="font-size: 1.5rem; font-weight: 800; font-family: monospace;">Lat: -- | Lon: --</div>
+            </div>
+        </section>
+
+        <section id="sosPage" class="page">
+            <div class="content-card" style="text-align:center;">
+                <h2 style="color:var(--danger)">EMERGENCY</h2>
+                <button class="sos-btn" onclick="sendSOS()">SOS</button>
+                <p>Click to broadcast location to rescue units.</p>
+            </div>
+        </section>
+
+        <section id="aiPage" class="page">
+            <div class="chat-window">
+                <div style="padding: 15px; background: var(--accent); color:white; font-weight:bold;">Emergency Flash AI</div>
+                <div id="chatBox">
+                    <div class="msg bot">What is the emergency? I provide 2-sentence quick guides.</div>
+                </div>
+                <div style="padding: 15px; display: flex; gap: 10px; border-top: 1px solid #eee;">
+                    <input type="text" id="chatInput" placeholder="e.g. puncture, lost, bleeding" style="flex:1; border:none; outline:none;">
+                    <button onclick="chat()" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:bold;">SEND</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let userLocation = "Lat: 0.00 | Lon: 0.00";
+        const AUTHORIZED_EMAIL = "prenishaa.a.csd.2023@snsce.ac.in";
+        const AUTHORIZED_PASS = "admin123";
+
+        function login() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            const error = document.getElementById('errorMsg');
+
+            if(user === AUTHORIZED_EMAIL && pass === AUTHORIZED_PASS) {
+                document.getElementById('displayUser').innerText = "Prenishaa";
+                document.getElementById('welcomeUser').innerText = "Prenishaa";
+                document.getElementById('profName').innerText = "Prenishaa";
+                document.getElementById('userInitial').innerText = "P";
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('mainNav').classList.remove('hidden');
+                document.getElementById('content').classList.remove('hidden');
+                startGPS();
+            } else {
+                error.innerText = "Invalid email or password!";
+            }
+        }
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(id + 'Page').classList.add('active-page');
+        }
+
+        function selectBlood(btn) {
+            document.querySelectorAll('.blood-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function selectType(btn) {
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function submitIncident() {
+            alert("Incident Submitted Successfully!");
+        }
+
+        function startGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    userLocation = `Lat: ${pos.coords.latitude.toFixed(4)} | Lon: ${pos.coords.longitude.toFixed(4)}`;
+                    document.getElementById('coords').innerText = userLocation;
+                });
+            }
+        }
+
+        async function chat() {
+            const input = document.getElementById('chatInput');
+            const box = document.getElementById('chatBox');
+            if(!input.value) return;
+
+            const userText = input.value;
+            box.innerHTML += `<div class="msg user">${userText}</div>`;
+            input.value = "";
+            box.scrollTop = box.scrollHeight;
+
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = "msg bot";
+            loadingMsg.innerText = "...";
+            box.appendChild(loadingMsg);
+
+            try {
+                const res = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userText, location: userLocation })
+                });
+                const data = await res.json();
+                loadingMsg.innerText = data.reply;
+            } catch (e) {
+                loadingMsg.innerText = "Connection Error. Park safely and seek help.";
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendSOS() {
+            alert("SOS SENT!\nLocation: " + userLocation);
+        }
+    </script>
+</body>
+</html>
+const express = require('express');
+const cors = require('cors');
+const fetch = require('node-fetch');
+
+const app = express();
+const PORT = 3000;
+
+app.use(cors());
+app.use(express.json());
+
+// REWRITTEN: Brutally short instructions to force speed and brevity
+const SAFETY_INSTRUCTIONS = `You are a 20-word Emergency AI. STRICT RULE: Maximum 2 sentences. No greetings. Directly list actions. Example: "1. Park safely. 2. Loosen nuts. 3. Jack up and swap tire. Safe now?"`;
+
+// CONFIGURATION: Set the only allowed credentials
+const AUTHORIZED_EMAIL = "prenishaa.a.csd.2023@snsce.ac.in";
+const AUTHORIZED_PASS = "admin123"; // Make sure to type this exactly in the login box
+
+// LOGIN ENDPOINT (Strict Validation)
+app.post('/api/login', (req, res) => {
+    const { email, password } = req.body;
+    
+    // Check if the input exactly matches the authorized credentials
+    if (email.trim().toLowerCase() === AUTHORIZED_EMAIL && password === AUTHORIZED_PASS) {
+        res.json({ success: true, message: "Login successful" });
+    } else {
+        res.status(401).json({ success: false, message: "Invalid email or password!" });
+    }
+});
+
+// SOS ALERT ENDPOINT
+app.post('/api/sos', async (req, res) => {
+    const { userName, location } = req.body;
+    const targetMobile = "9361845917"; 
+    const message = `EMERGENCY ALERT! Tourist ${userName} triggered SOS at ${location}. Please send help.`;
+    const API_KEY = "YOUR_FAST2SMS_API_KEY"; // Replace with your real key
+
+    try {
+        const smsResponse = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${API_KEY}&route=q&message=${encodeURIComponent(message)}&flash=0&numbers=${targetMobile}`);
+        const smsData = await smsResponse.json();
+        res.json({ success: smsData.return, reply: smsData.return ? "SOS alert delivered to 9361845917." : "SMS Gateway Error." });
+    } catch (error) {
+        res.status(500).json({ success: false, reply: "Failed to connect to SMS service." });
+    }
+});
+
+// AI CHAT ENDPOINT
+app.post('/api/chat', async (req, res) => {
+    const { message, location } = req.body;
+    try {
+        const response = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'llama3',
+                system: SAFETY_INSTRUCTIONS,
+                prompt: `LOC: ${location}\nMSG: ${message}`,
+                stream: false,
+                options: { num_predict: 30, temperature: 0.1, top_p: 0.1, stop: ["\n", "."] }
+            })
+        });
+        const data = await response.json();
+        res.json({ reply: data.response });
+    } catch (error) {
+        res.status(500).json({ reply: "System Error. Call 108 immediately." });
+    }
+});
+
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
